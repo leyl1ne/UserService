@@ -1,0 +1,52 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: user_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: user
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d user"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  user-migrator:
+    build:
+      context: .
+      dockerfile: Dockerfile.migrator
+    container_name: user_migrator
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      POSTGRES_DSN: postgres://$postgres:$postgres@postgres:5432/$booking?sslmode=disable
+    restart: "no"
+
+  user-service:
+    build:
+      context: .
+      dockerfile: Dockerfile.app
+    container_name: user_app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      user-migrator:
+        condition: service_completed_successfully
+    ports:
+      - "8080:8080"
+    environment:
+      POSTGRES_DSN: postgres://$postgres:$postgres@postgres:5432/$booking?sslmode=disable
+      CONFIG_PATH: /app/config/example.yaml
+    restart: always
+
+volumes:
+  postgres_data:
