@@ -13,10 +13,14 @@ var (
 	ErrExpiredToken = errors.New("token has expired")
 )
 
-type Claims struct {
+type Payload struct {
 	UserID    string `json:"user_id"`
 	UserRole  string `json:"user_role"`
 	CompanyID string `json:"company_id"`
+}
+
+type Claims struct {
+	Payload
 	jwt.RegisteredClaims
 }
 
@@ -32,14 +36,16 @@ func NewJWTGenerator(jwtSecret string, accessTokenTTL time.Duration) *JWTGenerat
 	}
 }
 
-func (t *JWTGenerator) Generate(userID, userRole, companyID string) (string, error) {
+func (t *JWTGenerator) Generate(payload Payload) (string, error) {
 	const op = "infrastructure.auth.jwt.Generate"
 
 	now := time.Now()
 	claims := Claims{
-		UserID:    userID,
-		UserRole:  userRole,
-		CompanyID: companyID,
+		Payload: Payload{
+			UserID:    payload.UserID,
+			UserRole:  payload.UserRole,
+			CompanyID: payload.CompanyID,
+		},
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(now.Add(t.accessTokenTTL)),
 		},
@@ -54,10 +60,11 @@ func (t *JWTGenerator) Generate(userID, userRole, companyID string) (string, err
 	return tokenString, nil
 }
 
-func (t *JWTGenerator) Validate(tokenString string) (userID, userRole, companyID string, err error) {
-	const op = "infrastructure.auth.jwt.ValidateToken"
+func (t *JWTGenerator) Validate(tokenString string) (Payload, error) {
+	const op = "infrastructure.auth.jwt.Validate"
 
 	claims := &Claims{}
+	var payload Payload
 
 	token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -67,14 +74,18 @@ func (t *JWTGenerator) Validate(tokenString string) (userID, userRole, companyID
 	})
 	if err != nil {
 		if errors.Is(err, jwt.ErrTokenExpired) {
-			return "", "", "", fmt.Errorf("%s: %w", op, ErrExpiredToken)
+			return payload, fmt.Errorf("%s: %w", op, ErrExpiredToken)
 		}
-		return "", "", "", fmt.Errorf("%s: parse token: %w", op, err)
+		return payload, fmt.Errorf("%s: parse token: %w", op, err)
 	}
 
 	if !token.Valid {
-		return "", "", "", fmt.Errorf("%s: %w", op, ErrInvalidToken)
+		return payload, fmt.Errorf("%s: %w", op, ErrInvalidToken)
 	}
 
-	return claims.UserID, claims.UserRole, claims.CompanyID, nil
+	return Payload{
+		UserID:    claims.UserID,
+		UserRole:  claims.UserRole,
+		CompanyID: claims.CompanyID,
+	}, nil
 }
