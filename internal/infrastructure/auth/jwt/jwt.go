@@ -29,14 +29,14 @@ type JWTGenerator struct {
 	accessTokenTTL time.Duration
 }
 
-func NewJWTGenerator(jwtSecret string, accessTokenTTL time.Duration) *JWTGenerator {
+func NewJWTGenerator(cfg Config) *JWTGenerator {
 	return &JWTGenerator{
-		jwtSecret:      []byte(jwtSecret),
-		accessTokenTTL: accessTokenTTL,
+		jwtSecret:      []byte(cfg.Secret),
+		accessTokenTTL: cfg.AccessTokeTTL,
 	}
 }
 
-func (t *JWTGenerator) Generate(payload Payload) (string, error) {
+func (t *JWTGenerator) GenerateAccessToken(payload Payload) (string, error) {
 	const op = "infrastructure.auth.jwt.Generate"
 
 	now := time.Now()
