@@ -58,7 +58,7 @@ func (r *Repository) GetRefreshToken(ctx context.Context, token string) (*authmo
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, fmt.Errorf("%s: token not found", op)
+			return nil, fmt.Errorf("%s: %w", op, authmodel.ErrRefreshTokenNotFound)
 		}
 
 		return nil, fmt.Errorf("%s: scan: %w", op, err)
@@ -75,9 +75,13 @@ func (r *Repository) DeleteRefreshToken(ctx context.Context, token string) error
 		WHERE token = $1
 	`
 
-	_, err := r.querier(ctx).Exec(ctx, query, token)
+	tag, err := r.querier(ctx).Exec(ctx, query, token)
 	if err != nil {
 		return fmt.Errorf("%s: exec: %w", op, err)
+	}
+
+	if tag.RowsAffected() == 0 {
+		return fmt.Errorf("%s: %w", op, authmodel.ErrRefreshTokenNotFound)
 	}
 
 	return nil
