@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	usermodel "github.com/leyl1ne/UserService/internal/model/user"
 )
 
@@ -30,6 +31,10 @@ func (r *Repository) CreateUser(ctx context.Context, user *usermodel.User) error
 	)
 
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return fmt.Errorf("%s: %w", op, usermodel.ErrEmailAlreadyExists)
+		}
 		return fmt.Errorf("%s: exec: %w", op, err)
 	}
 
@@ -109,6 +114,10 @@ func (r *Repository) UpdateUserEmail(ctx context.Context, userID uuid.UUID, emai
 
 	tag, err := r.querier(ctx).Exec(ctx, query, userID, email)
 	if err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			return fmt.Errorf("%s: %w", op, usermodel.ErrEmailAlreadyExists)
+		}
 		return fmt.Errorf("%s: exec: %w", op, err)
 	}
 
