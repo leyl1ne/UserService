@@ -10,4 +10,6 @@ var (
 	ErrForbidden          = errors.New("forbidden")
 	ErrDuplicateEmail     = errors.New("email already exists")
 	ErrValidation         = errors.New("validation failed")
+	ErrUserNotFound       = errors.New("user not found")
+	ErrCompanyNotFound    = errors.New("company not found")
 )
