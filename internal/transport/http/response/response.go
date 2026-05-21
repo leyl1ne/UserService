@@ -35,11 +35,7 @@ func WriteErrorAbort(c *gin.Context, status int, msg string) {
 }
 
 func WriteInternalServerError(c *gin.Context) {
-	c.JSON(http.StatusInternalServerError, ErrorResponse{
-		Error: Error{
-			Message: "internal server error",
-		},
-	})
+	WriteError(c, http.StatusInternalServerError, "internal server error")
 }
 
 func WriteBindError(c *gin.Context, err error) {
