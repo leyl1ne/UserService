@@ -14,15 +14,15 @@ import (
 )
 
 type Service struct {
-	authRepository      AuthRepository
+	repo                Repository
 	passwordHasher      PasswordHasher
 	accessTokenProvider AccessTokenProvider
 	refreshTokenTTL     time.Duration
 }
 
-func NewService(authRepository AuthRepository, passwordHasher PasswordHasher, accessTokenProvider AccessTokenProvider, refreshTokenTTL time.Duration) *Service {
+func NewService(repo Repository, passwordHasher PasswordHasher, accessTokenProvider AccessTokenProvider, refreshTokenTTL time.Duration) *Service {
 	return &Service{
-		authRepository:      authRepository,
+		repo:                repo,
 		passwordHasher:      passwordHasher,
 		accessTokenProvider: accessTokenProvider,
 		refreshTokenTTL:     refreshTokenTTL,
@@ -47,8 +47,8 @@ func (s *Service) Register(ctx context.Context, input RegisterInput) (*TokensOut
 
 	refreshToken := authmodel.NewRefreshToken(user.ID, s.refreshTokenTTL)
 
-	err = s.authRepository.WithTransaction(ctxTimeout, func(txCtx context.Context) error {
-		err = s.authRepository.CreateUser(txCtx, user)
+	err = s.repo.WithTransaction(ctxTimeout, func(txCtx context.Context) error {
+		err = s.repo.CreateUser(txCtx, user)
 		if err != nil {
 			if errors.Is(err, usermodel.ErrEmailAlreadyExists) {
 				return service.ErrDuplicateEmail
@@ -56,7 +56,7 @@ func (s *Service) Register(ctx context.Context, input RegisterInput) (*TokensOut
 			return fmt.Errorf("create user: %w", err)
 		}
 
-		err = s.authRepository.SaveRefreshToken(txCtx, refreshToken)
+		err = s.repo.SaveRefreshToken(txCtx, refreshToken)
 		if err != nil {
 			return fmt.Errorf("save refresh token: %w", err)
 		}
@@ -89,7 +89,7 @@ func (s *Service) Login(ctx context.Context, input LoginInput) (*TokensOutput, e
 	ctxTimeout, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	user, err := s.authRepository.GetUserByEmail(ctxTimeout, input.Email)
+	user, err := s.repo.GetUserByEmail(ctxTimeout, input.Email)
 	if err != nil {
 		if errors.Is(err, usermodel.ErrEmailNotFound) {
 			return nil, fmt.Errorf("%s: %w", op, service.ErrInvalidCredentials)
@@ -107,7 +107,7 @@ func (s *Service) Login(ctx context.Context, input LoginInput) (*TokensOutput, e
 
 	refreshToken := authmodel.NewRefreshToken(user.ID, s.refreshTokenTTL)
 
-	if err = s.authRepository.SaveRefreshToken(ctxTimeout, refreshToken); err != nil {
+	if err = s.repo.SaveRefreshToken(ctxTimeout, refreshToken); err != nil {
 		return nil, fmt.Errorf("%s: save refresh token: %w", op, err)
 	}
 
@@ -137,7 +137,7 @@ func (s *Service) Refresh(ctx context.Context, refreshToken string) (*RefreshOut
 	ctxTimeout, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	token, err := s.authRepository.GetRefreshToken(ctxTimeout, refreshToken)
+	token, err := s.repo.GetRefreshToken(ctxTimeout, refreshToken)
 	if err != nil {
 		if errors.Is(err, authmodel.ErrRefreshTokenNotFound) {
 			return nil, fmt.Errorf("%s: %w", op, service.ErrInvalidToken)
@@ -146,11 +146,11 @@ func (s *Service) Refresh(ctx context.Context, refreshToken string) (*RefreshOut
 	}
 
 	if time.Now().After(token.ExpiresAt) {
-		_ = s.authRepository.DeleteRefreshToken(ctxTimeout, refreshToken)
+		_ = s.repo.DeleteRefreshToken(ctxTimeout, refreshToken)
 		return nil, fmt.Errorf("%s: %w", op, service.ErrTokenExpired)
 	}
 
-	user, err := s.authRepository.GetUserByID(ctxTimeout, token.UserID)
+	user, err := s.repo.GetUserByID(ctxTimeout, token.UserID)
 	if err != nil {
 		if errors.Is(err, usermodel.ErrUserNotFound) {
 			return nil, fmt.Errorf("%s: %w", op, service.ErrInvalidToken)
@@ -183,7 +183,7 @@ func (s *Service) Logout(ctx context.Context, refreshToken string) error {
 	ctxTimeout, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
-	if err := s.authRepository.DeleteRefreshToken(ctxTimeout, refreshToken); err != nil {
+	if err := s.repo.DeleteRefreshToken(ctxTimeout, refreshToken); err != nil {
 		if errors.Is(err, authmodel.ErrRefreshTokenNotFound) {
 			return nil
 		}

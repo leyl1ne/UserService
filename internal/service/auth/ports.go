@@ -9,7 +9,7 @@ import (
 	usermodel "github.com/leyl1ne/UserService/internal/model/user"
 )
 
-type AuthRepository interface {
+type Repository interface {
 	WithTransaction(ctx context.Context, fn func(txCtx context.Context) error) error
 	CreateUser(ctx context.Context, user *usermodel.User) error
 	GetUserByID(ctx context.Context, id uuid.UUID) (*usermodel.User, error)
