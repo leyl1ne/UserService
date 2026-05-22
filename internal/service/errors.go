@@ -13,3 +13,19 @@ var (
 	ErrUserNotFound       = errors.New("user not found")
 	ErrCompanyNotFound    = errors.New("company not found")
 )
+
+type ValidationError struct {
+	Fields map[string]string
+}
+
+func (e ValidationError) Error() string {
+	return "business validation failed"
+}
+
+func NewValidationError(field, message string) *ValidationError {
+	return &ValidationError{
+		Fields: map[string]string{
+			field: message,
+		},
+	}
+}
