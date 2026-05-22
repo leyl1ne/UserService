@@ -58,14 +58,17 @@ func (h *UserHandler) GetCurrentUser() gin.HandlerFunc {
 
 		user, err := h.userService.GetUserByID(c.Request.Context(), userID)
 		if err != nil {
-			if errors.Is(err, service.ErrUserNotFound) {
+
+			switch {
+			case errors.Is(err, service.ErrUserNotFound):
 				response.WriteError(c, http.StatusUnauthorized, "unauthorized")
 				log.Warn("authenticated user not found", logger.Err(err))
 				return
+			default:
+				response.WriteInternalServerError(c)
+				log.Error("internal server error", logger.Err(err))
+				return
 			}
-			response.WriteInternalServerError(c)
-			log.Error("internal server error", logger.Err(err))
-			return
 		}
 
 		c.JSON(http.StatusOK, toUserResponse(user))
@@ -90,14 +93,17 @@ func (h *UserHandler) GetUser() gin.HandlerFunc {
 
 		user, err := h.userService.GetUserByID(c.Request.Context(), userID)
 		if err != nil {
-			if errors.Is(err, service.ErrUserNotFound) {
+
+			switch {
+			case errors.Is(err, service.ErrUserNotFound):
 				response.WriteError(c, http.StatusNotFound, "user not found")
 				log.Warn("authenticated user not found", logger.Err(err))
 				return
+			default:
+				response.WriteInternalServerError(c)
+				log.Error("internal server error", logger.Err(err))
+				return
 			}
-			response.WriteInternalServerError(c)
-			log.Error("internal server error", logger.Err(err))
-			return
 		}
 
 		c.JSON(http.StatusOK, toUserResponse(user))
@@ -139,21 +145,21 @@ func (h *UserHandler) UpdateCurrentUser() gin.HandlerFunc {
 			Email:  req.Email,
 		})
 		if err != nil {
-			if errors.Is(err, service.ErrDuplicateEmail) {
+
+			switch {
+			case errors.Is(err, service.ErrDuplicateEmail):
 				response.WriteError(c, http.StatusConflict, "email already exists")
 				log.Warn("email already exists", logger.Err(err))
 				return
-			}
-
-			if errors.Is(err, service.ErrUserNotFound) {
+			case errors.Is(err, service.ErrUserNotFound):
 				response.WriteError(c, http.StatusUnauthorized, "unauthorized")
 				log.Warn("authenticated user not found", logger.Err(err))
 				return
+			default:
+				response.WriteInternalServerError(c)
+				log.Error("internal server error", logger.Err(err))
+				return
 			}
-
-			response.WriteInternalServerError(c)
-			log.Error("internal server error", logger.Err(err))
-			return
 		}
 
 		c.JSON(http.StatusOK, toUserResponse(user))
@@ -178,14 +184,17 @@ func (h *UserHandler) ListUsersByCompany() gin.HandlerFunc {
 
 		users, err := h.userService.ListUsersByCompany(c.Request.Context(), companyID)
 		if err != nil {
-			if errors.Is(err, service.ErrCompanyNotFound) {
+
+			switch {
+			case errors.Is(err, service.ErrCompanyNotFound):
 				response.WriteError(c, http.StatusNotFound, "company not found")
 				log.Warn("company not found", logger.Err(err))
 				return
+			default:
+				response.WriteInternalServerError(c)
+				log.Error("internal server error", logger.Err(err))
+				return
 			}
-			response.WriteInternalServerError(c)
-			log.Error("internal server error", logger.Err(err))
-			return
 		}
 
 		result := make([]UserResponse, 0, len(users))

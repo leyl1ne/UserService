@@ -54,20 +54,24 @@ func (h *AuthHandler) Register() gin.HandlerFunc {
 			Role:     req.Role,
 		})
 		if err != nil {
-			if errors.Is(err, service.ErrValidation) {
+			var ve service.ValidationError
+			switch {
+			case errors.As(err, &ve):
 				response.WriteError(c, http.StatusUnprocessableEntity, "validation error")
 				log.Warn("validation error", logger.Err(err))
 				return
-			}
 
-			if errors.Is(err, service.ErrDuplicateEmail) {
+			case errors.Is(err, service.ErrDuplicateEmail):
 				response.WriteError(c, http.StatusConflict, "email already exists")
 				log.Warn("duplicate email", logger.Err(err))
 				return
+
+			default:
+				response.WriteInternalServerError(c)
+				log.Error("internal server error", logger.Err(err))
+				return
 			}
-			response.WriteInternalServerError(c)
-			log.Error("internal server error", logger.Err(err))
-			return
+
 		}
 
 		c.JSON(http.StatusCreated, AuthResponse{
@@ -99,14 +103,16 @@ func (h *AuthHandler) Login() gin.HandlerFunc {
 			Password: req.Password,
 		})
 		if err != nil {
-			if errors.Is(err, service.ErrInvalidCredentials) {
+			switch {
+			case errors.Is(err, service.ErrInvalidCredentials):
 				response.WriteError(c, http.StatusUnauthorized, "invalid credentials")
 				log.Warn("invalid credentials", logger.Err(err))
 				return
+			default:
+				response.WriteInternalServerError(c)
+				log.Error("internal service error", logger.Err(err))
+				return
 			}
-			response.WriteInternalServerError(c)
-			log.Error("internal service error", logger.Err(err))
-			return
 		}
 
 		c.JSON(http.StatusOK, AuthResponse{
@@ -134,21 +140,20 @@ func (h *AuthHandler) Refresh() gin.HandlerFunc {
 
 		refreshOutput, err := h.authService.Refresh(c.Request.Context(), req.RefreshToken)
 		if err != nil {
-			if errors.Is(err, service.ErrInvalidToken) {
+			switch {
+			case errors.Is(err, service.ErrInvalidToken):
 				response.WriteError(c, http.StatusUnauthorized, "invalid token")
 				log.Warn("invalid token", logger.Err(err))
 				return
-			}
-
-			if errors.Is(err, service.ErrTokenExpired) {
+			case errors.Is(err, service.ErrTokenExpired):
 				response.WriteError(c, http.StatusUnauthorized, "token expired")
 				log.Warn("token expired", logger.Err(err))
 				return
+			default:
+				response.WriteInternalServerError(c)
+				log.Error("internal server error", logger.Err(err))
+				return
 			}
-
-			response.WriteInternalServerError(c)
-			log.Error("internal server error", logger.Err(err))
-			return
 		}
 
 		c.JSON(http.StatusOK, RefreshResponse{
