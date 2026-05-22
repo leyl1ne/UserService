@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
+	"github.com/leyl1ne/UserService/internal/service"
 )
 
 type Error struct {
@@ -38,6 +39,10 @@ func WriteInternalServerError(c *gin.Context) {
 	WriteError(c, http.StatusInternalServerError, "internal server error")
 }
 
+func WriteServiceValidationError(c *gin.Context, ve service.ValidationError) {
+	ValidationError(c, ve.Fields)
+}
+
 func WriteBindError(c *gin.Context, err error) {
 	var ve validator.ValidationErrors
 
@@ -46,7 +51,7 @@ func WriteBindError(c *gin.Context, err error) {
 		WriteError(c, http.StatusBadRequest, "request body is empty")
 		return
 	case errors.As(err, &ve):
-		ValidationError(c, ve)
+		ValidationError(c, formatValidationErrors(ve))
 		return
 	default:
 		WriteError(c, http.StatusBadRequest, "invalid request body")
@@ -54,10 +59,10 @@ func WriteBindError(c *gin.Context, err error) {
 	}
 }
 
-func ValidationError(c *gin.Context, validaitonErr validator.ValidationErrors) {
+func ValidationError(c *gin.Context, validaitonErr map[string]string) {
 	c.JSON(http.StatusUnprocessableEntity, gin.H{
 		"error":  "validation failed",
-		"fields": formatValidationErrors(validaitonErr),
+		"fields": validaitonErr,
 	})
 }
 
