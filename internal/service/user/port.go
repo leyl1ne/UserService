@@ -9,6 +9,7 @@ import (
 	usermodel "github.com/leyl1ne/UserService/internal/model/user"
 )
 
+//go:generate go run github.com/vektra/mockery/v2@latest --name=Repository
 type Repository interface {
 	GetUserByID(ctx context.Context, id uuid.UUID) (*usermodel.User, error)
 	UpdateUser(ctx context.Context, userID uuid.UUID, email string) error
