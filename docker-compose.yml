@@ -28,7 +28,7 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      POSTGRES_DSN: postgres://$postgres:$postgres@postgres:5432/$booking?sslmode=disable
+      POSTGRES_DSN: "postgres://postgres:postgres@postgres:5432/user?sslmode=disable"
     restart: "no"
 
   user-service:
@@ -44,8 +44,9 @@ services:
     ports:
       - "8080:8080"
     environment:
-      POSTGRES_DSN: postgres://$postgres:$postgres@postgres:5432/$booking?sslmode=disable
-      CONFIG_PATH: /app/config/example.yaml
+      POSTGRES_DSN: "postgres://postgres:postgres@postgres:5432/user?sslmode=disable"
+      CONFIG_PATH: "/app/config/example.yaml"
+      JWT_SECRET: "your-production-secret-key"
     restart: always
 
 volumes:
