@@ -19,11 +19,15 @@ type ValidationError struct {
 }
 
 func (e ValidationError) Error() string {
-	return "business validation failed"
+	return ErrValidation.Error()
 }
 
-func NewValidationError(field, message string) *ValidationError {
-	return &ValidationError{
+func (e ValidationError) Unwrap() error {
+	return ErrValidation
+}
+
+func NewValidationError(field, message string) ValidationError {
+	return ValidationError{
 		Fields: map[string]string{
 			field: message,
 		},
