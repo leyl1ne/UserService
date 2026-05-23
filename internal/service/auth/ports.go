@@ -9,6 +9,7 @@ import (
 	usermodel "github.com/leyl1ne/UserService/internal/model/user"
 )
 
+//go:generate go run github.com/vektra/mockery/v2@latest --name=Repository
 type Repository interface {
 	WithTransaction(ctx context.Context, fn func(txCtx context.Context) error) error
 	CreateUser(ctx context.Context, user *usermodel.User) error
@@ -19,11 +20,13 @@ type Repository interface {
 	DeleteRefreshToken(ctx context.Context, token string) error
 }
 
+//go:generate go run github.com/vektra/mockery/v2@latest --name=PasswordHasher
 type PasswordHasher interface {
 	Hash(password string) (string, error)
 	Compare(hash string, password string) error
 }
 
+//go:generate go run github.com/vektra/mockery/v2@latest --name=AccessTokenProvider
 type AccessTokenProvider interface {
 	GenerateAccessToken(payload jwt.Payload) (string, error)
 }

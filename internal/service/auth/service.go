@@ -39,7 +39,10 @@ func (s *Service) Register(ctx context.Context, input RegisterInput) (*TokensOut
 
 	user, err := usermodel.NewUser(input.Email, passwordHash, input.Role)
 	if err != nil {
-		return nil, fmt.Errorf("%s: new user: %w", op, service.ErrValidation)
+		if errors.Is(err, usermodel.ErrInvalidUserRole) {
+			return nil, service.NewValidationError("role", usermodel.ErrInvalidUserRole.Error())
+		}
+		return nil, fmt.Errorf("%s: failed create new user: %w", op, err)
 	}
 
 	ctxTimeout, cancel := context.WithTimeout(ctx, 5*time.Second)
