@@ -2,11 +2,21 @@ openapi: 3.0.3
 info:  
   title: User Service API  
   version: 1.0.0  
-  
-servers:  
-  - url: /api/v1  
+   
   
 paths:
+  /health:
+    get:
+      summary: Health check
+      tags:
+        - System
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
 
   /auth/register:
     post:
@@ -313,43 +323,92 @@ paths:
               schema:
                 $ref: '#/components/schemas/ErrorResponse' 
   
-  /companies:  
-    post:  
-      summary: Create company  
-      security:  
-        - bearerAuth: []  
-      requestBody:  
-        content:  
-          application/json:  
-            schema:  
-              $ref: '#/components/schemas/CreateCompanyRequest'  
-      responses:  
-        '201':  
-          description: Company created  
-          content:  
-            application/json:  
-              schema:  
-                $ref: '#/components/schemas/CompanyResponse'  
-  
-  /companies/{id}:  
-    get:  
-      summary: Get company  
-      security:  
-        - bearerAuth: []  
-      parameters:  
-        - name: id  
-          in: path  
-          required: true  
-          schema:  
-            type: string  
-      responses:  
-        '200':  
-          description: Company info  
-          content:  
-            application/json:  
-              schema:  
-                $ref: '#/components/schemas/CompanyResponse'  
-  
+  /companies:
+    post:
+      summary: Create company
+      security:
+        - bearerAuth: []
+
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCompanyRequest'
+
+      responses:
+        '201':
+          description: Company created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompanyResponse'
+
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+        '422':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationErrorResponse'
+
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+
+  /companies/{id}:
+    get:
+      summary: Get company by id
+      security:
+        - bearerAuth: []
+
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+
+      responses:
+        '200':
+          description: Company information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompanyResponse'
+
+        '400':
+          description: Invalid company id
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+        '404':
+          description: Company not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+    
   /companies/{id}/users:
     get:
       summary: Get users in company
@@ -404,6 +463,26 @@ components:
       bearerFormat: JWT  
   
   schemas:  
+    HealthResponse:
+        type: object
+        properties:
+          status:
+            type: string
+            example: ok
+
+          service:
+            type: string
+            example: UserService
+
+          version:
+            type: string
+            example: 1.0.0
+
+          environment:
+            type: string
+            example: production
+
+
     ErrorResponse:
       type: object
       required:
@@ -585,24 +664,50 @@ components:
           format: email
           example: new-email@example.com
   
-    CreateCompanyRequest:  
-      type: object  
-      required: [name]  
-      properties:  
-        name:  
-          type: string  
-        description:  
-          type: string  
-  
-    CompanyResponse:  
-      type: object  
-      properties:  
-        id:  
-          type: string  
-        name:  
-          type: string  
-        description:  
-          type: string  
+    CreateCompanyRequest:
+      type: object
+      required:
+        - name
+
+      properties:
+        name:
+          type: string
+          maxLength: 255
+          example: Acme Logistics
+
+        description:
+          type: string
+          maxLength: 1000
+          example: International logistics company
+
+
+    CompanyResponse:
+      type: object
+
+      required:
+        - id
+        - name
+        - created_at
+
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 550e8400-e29b-41d4-a716-446655440000
+
+        name:
+          type: string
+          example: Acme Logistics
+
+        description:
+          type: string
+          nullable: true
+          example: International logistics company
+
+        created_at:
+          type: string
+          format: date-time
+          example: "2025-07-25T12:34:56Z"
   
     UserListResponse:  
       type: object  
