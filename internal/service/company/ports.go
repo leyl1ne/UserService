@@ -8,6 +8,7 @@ import (
 	companymodel "github.com/leyl1ne/UserService/internal/model/company"
 )
 
+//go:generate go run github.com/vektra/mockery/v2@latest --name=Repository
 type Repository interface {
 	CreateCompany(ctx context.Context, c *companymodel.Company) error
 	GetCompanyByID(ctx context.Context, id uuid.UUID) (*companymodel.Company, error)
