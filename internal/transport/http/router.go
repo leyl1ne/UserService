@@ -29,6 +29,8 @@ func SetupRouter(
 	handlers Handlers,
 	tokenProvider TokenProvider,
 ) *gin.Engine {
+	gin.SetMode(gin.ReleaseMode)
+
 	router := gin.New()
 
 	router.Use(gin.Recovery())
