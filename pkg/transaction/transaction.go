@@ -28,6 +28,10 @@ func Extract(ctx context.Context) *Transaction {
 	return tx
 }
 
+func SetTransaction(ctx context.Context, tx pgx.Tx) context.Context {
+	return context.WithValue(ctx, ctxKey{}, &Transaction{Tx: tx})
+}
+
 func Wrap(ctx context.Context, pool *pgxpool.Pool, fn func(ctx context.Context) error) error {
 	tx, err := pool.Begin(ctx)
 	if err != nil {
