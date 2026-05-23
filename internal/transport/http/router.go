@@ -6,6 +6,7 @@ import (
 	"github.com/leyl1ne/UserService/internal/logger"
 	authandler "github.com/leyl1ne/UserService/internal/transport/http/handler/auth"
 	companyhandler "github.com/leyl1ne/UserService/internal/transport/http/handler/company"
+	docshandler "github.com/leyl1ne/UserService/internal/transport/http/handler/docs"
 	healthhandler "github.com/leyl1ne/UserService/internal/transport/http/handler/health"
 	userhandler "github.com/leyl1ne/UserService/internal/transport/http/handler/user"
 	"github.com/leyl1ne/UserService/internal/transport/http/middleware"
@@ -16,6 +17,7 @@ type Handlers struct {
 	UserHandler    *userhandler.UserHandler
 	CompanyHandler *companyhandler.CompanyHandler
 	HealthHandler  *healthhandler.HealthHandler
+	DocsHandler    *docshandler.DocsHandler
 }
 
 type TokenProvider interface {
@@ -34,6 +36,11 @@ func SetupRouter(
 
 	// Health check
 	router.GET("/health", handlers.HealthHandler.Health())
+
+	// Documentation for api
+	router.GET("/docs", handlers.DocsHandler.Redirect())
+	router.GET("/swagger", handlers.DocsHandler.UI())
+	router.GET("/swagger/api.yaml", handlers.DocsHandler.Spec())
 
 	// Auth routes (public)
 	authGroup := router.Group("/auth")
