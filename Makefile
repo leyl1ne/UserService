@@ -9,7 +9,7 @@ logs:
 
 migrate-new:
 	@if [ -z "$(name)" ]; then echo "make migrate-new name=some_name"; exit 1; fi
-	@migrate create -ext sql -dir internal/repository/migrations -seq $(name)
+	@migrate create -ext sql -dir internal/infrastructure/postgres/migrations -seq $(name)
 
 
 CONFIG_PATH ?=config/config.yaml
