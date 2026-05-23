@@ -10,14 +10,14 @@ import (
 
 func LoggerMiddleware(log logger.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		log = log.With(
+		mLog := log.With(
 			logger.Field{Key: "component", Value: "middleware/logger"},
 		)
 
 		reqID := uuid.NewString()
 		SetRequestID(c, reqID)
 
-		reqLogger := log.With(
+		reqLogger := mLog.With(
 			logger.Field{Key: "request_id", Value: reqID},
 			logger.Field{Key: "method", Value: c.Request.Method},
 			logger.Field{Key: "path", Value: c.FullPath()},
