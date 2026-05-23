@@ -19,6 +19,7 @@ import (
 	httpServer "github.com/leyl1ne/UserService/internal/transport/http"
 	authandler "github.com/leyl1ne/UserService/internal/transport/http/handler/auth"
 	companyhandler "github.com/leyl1ne/UserService/internal/transport/http/handler/company"
+	docshandler "github.com/leyl1ne/UserService/internal/transport/http/handler/docs"
 	healthhandler "github.com/leyl1ne/UserService/internal/transport/http/handler/health"
 	userhandler "github.com/leyl1ne/UserService/internal/transport/http/handler/user"
 
@@ -64,12 +65,17 @@ func main() {
 	userHandler := userhandler.NewUserHandler(log, userService)
 	companyHandler := companyhandler.NewCompanyHandler(log, companyService)
 	healthHandler := healthhandler.NewHealthHandler(cfg.App.Version, cfg.App.Name, cfg.App.Environment)
+	docsHanler, err := docshandler.NewDocsHandler()
+	if err != nil {
+		log.Fatal("failed to create docs handler", logger.Err(err))
+	}
 
 	router := httpServer.SetupRouter(log, httpServer.Handlers{
 		AuthHandler:    authHandler,
 		UserHandler:    userHandler,
 		CompanyHandler: companyHandler,
 		HealthHandler:  healthHandler,
+		DocsHandler:    docsHanler,
 	}, jwtGenerator)
 
 	s := &http.Server{
