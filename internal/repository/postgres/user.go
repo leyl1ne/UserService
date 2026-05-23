@@ -103,7 +103,7 @@ func (r *Repository) GetUserByEmail(ctx context.Context, email string) (*usermod
 	return &u, nil
 }
 
-func (r *Repository) UpdateUserEmail(ctx context.Context, userID uuid.UUID, email string) error {
+func (r *Repository) UpdateUser(ctx context.Context, userID uuid.UUID, email string) error {
 	const op = "repository.postgres.UpdateUserEmail"
 
 	const query = `
