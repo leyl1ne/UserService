@@ -1,8 +1,10 @@
 package zl
 
 import (
+	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 
 	"github.com/leyl1ne/UserService/internal/logger"
 	"github.com/rs/zerolog"
@@ -12,20 +14,60 @@ type ZerologLogger struct {
 	log zerolog.Logger
 }
 
-func NewZerologLogger(level string, out io.Writer) *ZerologLogger {
-	lvl, err := zerolog.ParseLevel(level)
+func NewZerologLogger(cfg logger.Config) (*ZerologLogger, error) {
+	const op = "logger.zl.NewZeroLogger"
+
+	lvl, err := zerolog.ParseLevel(cfg.Level)
 	if err != nil {
 		lvl = zerolog.InfoLevel
 	}
 	zerolog.SetGlobalLevel(lvl)
 
-	if out == nil {
-		out = zerolog.ConsoleWriter{Out: os.Stderr}
+	output, err := resolveOutput(cfg.Output)
+	if err != nil {
+		return nil, fmt.Errorf("%s: failed resolve log output: %w", op, err)
 	}
 
-	l := zerolog.New(out).With().Timestamp().Logger()
-	return &ZerologLogger{log: l}
+	var writer io.Writer
+	switch cfg.Format {
+	case "console":
+		writer = zerolog.ConsoleWriter{
+			Out:        output,
+			TimeFormat: "2006-01-02 15:04:05",
+		}
+	case "json", "":
+		writer = output
+	default:
+		return nil, fmt.Errorf("%s: unknown log format: %s", op, cfg.Format)
+	}
 
+	l := zerolog.New(writer).With().Timestamp().Logger()
+	return &ZerologLogger{log: l}, nil
+
+}
+
+func resolveOutput(output string) (io.Writer, error) {
+	switch output {
+	case "", "stderr":
+		return os.Stderr, nil
+	case "stdout":
+		return os.Stdout, nil
+	case "discard":
+		return io.Discard, nil
+	default:
+		dir := filepath.Dir(output)
+		if dir != "." && dir != "/" {
+			if err := os.MkdirAll(dir, 0755); err != nil {
+				return nil, fmt.Errorf("create log dir %s: %w", dir, err)
+			}
+		}
+		f, err := os.OpenFile(output, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			return nil, fmt.Errorf("open log file %s: %w", output, err)
+		}
+		return f, nil
+
+	}
 }
 
 func (z *ZerologLogger) With(fields ...logger.Field) logger.Logger {
