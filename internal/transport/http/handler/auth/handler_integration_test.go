@@ -3,7 +3,6 @@ package auth_test
 import (
 	"bytes"
 	"encoding/json"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -38,7 +37,12 @@ func setupAuthHandler(t *testing.T) (*authandler.AuthHandler, *postgres.Reposito
 	}
 	jwtProvider := jwt.NewJWTGenerator(jwtConfig)
 
-	log := zl.NewZerologLogger("debug", io.Discard)
+	log, err := zl.NewZerologLogger(logger.Config{
+		Level:  "debug",
+		Format: "",
+		Output: "discard",
+	})
+	require.NoError(t, err)
 
 	authSvc := authservice.NewService(repo, hasher, jwtProvider, 24*time.Hour)
 	handler := authandler.NewAuthHandler(log, authSvc)

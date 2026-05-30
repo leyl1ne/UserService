@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -43,7 +42,7 @@ func setupUserTest(t *testing.T) (*userhandler.UserHandler, *authandler.AuthHand
 	}
 	jwtProvider := jwt.NewJWTGenerator(jwtConfig)
 
-	log := setupLogger()
+	log := setupLogger(t)
 
 	authSvc := authservice.NewService(repo, hasher, jwtProvider, 24*time.Hour)
 	userSvc := userservice.NewService(repo)
@@ -59,8 +58,14 @@ func setupUserTest(t *testing.T) (*userhandler.UserHandler, *authandler.AuthHand
 
 	return userHandler, authHandler, jwtConfig, db
 }
-func setupLogger() logger.Logger {
-	return zl.NewZerologLogger("debug", io.Discard)
+func setupLogger(t *testing.T) logger.Logger {
+	log, err := zl.NewZerologLogger(logger.Config{
+		Level:  "debug",
+		Format: "",
+		Output: "discard",
+	})
+	require.NoError(t, err)
+	return log
 }
 
 func generateJWTToken(t *testing.T, config jwt.Config, userID, role, companyID string) string {
@@ -74,12 +79,12 @@ func generateJWTToken(t *testing.T, config jwt.Config, userID, role, companyID s
 	return token
 }
 
-func setupAuthenticatedGin(jwtConfig jwt.Config) *gin.Engine {
+func setupAuthenticatedGin(t *testing.T, jwtConfig jwt.Config) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
 
 	jwtProvider := jwt.NewJWTGenerator(jwtConfig)
-	router.Use(middleware.AuthMiddleware(setupLogger(), jwtProvider))
+	router.Use(middleware.AuthMiddleware(setupLogger(t), jwtProvider))
 
 	return router
 }
@@ -211,7 +216,7 @@ func TestUserHandler_GetCurrentUser_Integration(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			router := setupAuthenticatedGin(jwtConfig)
+			router := setupAuthenticatedGin(t, jwtConfig)
 			router.GET("/users/me", userHandler.GetCurrentUser())
 
 			req := httptest.NewRequest(http.MethodGet, "/users/me", nil)
@@ -314,7 +319,7 @@ func TestUserHandler_GetUser_Integration(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			router := setupAuthenticatedGin(jwtConfig)
+			router := setupAuthenticatedGin(t, jwtConfig)
 			router.GET("/users/:id", userHandler.GetUser())
 
 			req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/users/%s", tt.userID), nil)
@@ -443,7 +448,7 @@ func TestUserHandler_UpdateCurrentUser_Integration(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			router := setupAuthenticatedGin(jwtConfig)
+			router := setupAuthenticatedGin(t, jwtConfig)
 			router.PATCH("/users/me", userHandler.UpdateCurrentUser())
 
 			var reqBody []byte
@@ -553,7 +558,7 @@ func TestUserHandler_ListUsersByCompany_Integration(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			router := setupAuthenticatedGin(jwtConfig)
+			router := setupAuthenticatedGin(t, jwtConfig)
 			router.GET("/companies/:id/users", userHandler.ListUsersByCompany())
 
 			req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/companies/%s/users", tt.companyID), nil)

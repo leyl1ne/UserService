@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -42,7 +41,7 @@ func setupCompanyTest(t *testing.T) (*companyhandler.CompanyHandler, *authandler
 	}
 	jwtProvider := jwt.NewJWTGenerator(jwtConfig)
 
-	log := setupLogger()
+	log := setupLogger(t)
 
 	authSvc := authservice.NewService(repo, hasher, jwtProvider, 24*time.Hour)
 	companySvc := companyservice.NewService(repo)
@@ -53,16 +52,23 @@ func setupCompanyTest(t *testing.T) (*companyhandler.CompanyHandler, *authandler
 	return companyHandler, authHandler, jwtConfig, db
 }
 
-func setupLogger() logger.Logger {
-	return zl.NewZerologLogger("debug", io.Discard)
+func setupLogger(t *testing.T) logger.Logger {
+	log, err := zl.NewZerologLogger(logger.Config{
+		Level:  "debug",
+		Format: "",
+		Output: "discard",
+	})
+	require.NoError(t, err)
+
+	return log
 }
 
-func setupAuthenticatedGin(jwtConfig jwt.Config) *gin.Engine {
+func setupAuthenticatedGin(t *testing.T, jwtConfig jwt.Config) *gin.Engine {
 	gin.SetMode(gin.TestMode)
 	router := gin.New()
 
 	jwtProvider := jwt.NewJWTGenerator(jwtConfig)
-	router.Use(middleware.AuthMiddleware(setupLogger(), jwtProvider))
+	router.Use(middleware.AuthMiddleware(setupLogger(t), jwtProvider))
 
 	return router
 }
@@ -248,7 +254,7 @@ func TestCompanyHandler_CreateCompany_Integration(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			router := setupAuthenticatedGin(jwtConfig)
+			router := setupAuthenticatedGin(t, jwtConfig)
 			router.POST("/companies", companyHandler.CreateCompany())
 
 			var reqBody []byte
@@ -377,7 +383,7 @@ func TestCompanyHandler_GetCompany_Integration(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			router := setupAuthenticatedGin(jwtConfig)
+			router := setupAuthenticatedGin(t, jwtConfig)
 			router.GET("/companies/:id", companyHandler.GetCompany())
 
 			req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/companies/%s", tt.companyID), nil)
@@ -405,7 +411,7 @@ func TestCompanyHandler_FullFlow_Integration(t *testing.T) {
 
 	_, token := registerTestUser(t, authHandler, "companyflow@test.com", "MySecureP@ss123", "SELLER")
 
-	router := setupAuthenticatedGin(jwtConfig)
+	router := setupAuthenticatedGin(t, jwtConfig)
 	router.POST("/companies", companyHandler.CreateCompany())
 	router.GET("/companies/:id", companyHandler.GetCompany())
 
