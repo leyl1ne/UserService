@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/leyl1ne/UserService/internal/infrastructure/auth/jwt"
 	"github.com/leyl1ne/UserService/internal/logger"
+	httpServer "github.com/leyl1ne/UserService/internal/transport/http"
 	authandler "github.com/leyl1ne/UserService/internal/transport/http/handler/auth"
 	companyhandler "github.com/leyl1ne/UserService/internal/transport/http/handler/company"
 	docshandler "github.com/leyl1ne/UserService/internal/transport/http/handler/docs"
@@ -28,6 +29,7 @@ func SetupRouter(
 	log logger.Logger,
 	handlers Handlers,
 	tokenProvider TokenProvider,
+	cfg httpServer.Config,
 ) *gin.Engine {
 	gin.SetMode(gin.ReleaseMode)
 
@@ -35,6 +37,7 @@ func SetupRouter(
 
 	router.Use(gin.Recovery())
 	router.Use(middleware.LoggerMiddleware(log))
+	router.Use(middleware.ServiceBasicAuthMiddleware(log, cfg.HTTP.BasicAuth))
 
 	// Health check
 	router.GET("/health", handlers.HealthHandler.Health())
@@ -55,7 +58,7 @@ func SetupRouter(
 
 	// Authenticated routes
 	authorized := router.Group("")
-	authorized.Use(middleware.AuthMiddleware(log, tokenProvider))
+	authorized.Use(middleware.ExtractHeadersMiddleware(log))
 	{
 		// User routes
 		usersGroup := authorized.Group("/users")
