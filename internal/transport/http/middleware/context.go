@@ -1,6 +1,9 @@
 package middleware
 
-import "github.com/gin-gonic/gin"
+import (
+	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
+)
 
 type contextKey string
 
@@ -34,6 +37,10 @@ func SetUser(c *gin.Context, user UserContext) {
 }
 
 func SetRequestID(c *gin.Context, requestID string) {
+	if requestID == "" {
+		requestID = uuid.NewString()
+	}
+
 	c.Set(RequestIDContextKey, requestID)
 }
 
