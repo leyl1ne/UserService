@@ -8,11 +8,28 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/leyl1ne/UserService/internal/infrastructure/auth/jwt"
 	"github.com/leyl1ne/UserService/internal/logger"
+	httpServer "github.com/leyl1ne/UserService/internal/transport/http"
 	"github.com/leyl1ne/UserService/internal/transport/http/response"
 )
 
 type TokenProvider interface {
 	Validate(tokenString string) (jwt.Payload, error)
+}
+
+func ServiceBasicAuthMiddleware(log logger.Logger, basicAuth httpServer.BasicAuth) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if !basicAuth.Enabled {
+			c.Next()
+			return
+		}
+
+		user, pass, ok := c.Request.BasicAuth()
+		if !ok || user != basicAuth.Username || pass != basicAuth.Password {
+			response.WriteErrorAbort(c, http.StatusForbidden, "not forbidden")
+			return
+		}
+		c.Next()
+	}
 }
 
 func AuthMiddleware(log logger.Logger, tokenProvider TokenProvider) gin.HandlerFunc {
