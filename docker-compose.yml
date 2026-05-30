@@ -42,7 +42,7 @@ services:
       user-migrator:
         condition: service_completed_successfully
     ports:
-      - "8080:8080"
+      - "8081:8081"
     environment:
       POSTGRES_DSN: "postgres://postgres:postgres@postgres:5432/user?sslmode=disable"
       CONFIG_PATH: "/app/configs/example.yaml"

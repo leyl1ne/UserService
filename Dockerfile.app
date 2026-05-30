@@ -18,6 +18,6 @@ WORKDIR /app
 COPY --from=builder /app/app .
 COPY --from=builder /app/configs/example.yaml ./configs/example.yaml  
 
-EXPOSE 8080
+EXPOSE 8081
 
 CMD ["./app"]
