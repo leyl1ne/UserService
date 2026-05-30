@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/leyl1ne/UserService/internal/logger"
 )
 
@@ -14,8 +13,7 @@ func LoggerMiddleware(log logger.Logger) gin.HandlerFunc {
 			logger.Field{Key: "component", Value: "middleware/logger"},
 		)
 
-		reqID := uuid.NewString()
-		SetRequestID(c, reqID)
+		reqID := GetRequestID(c)
 
 		reqLogger := mLog.With(
 			logger.Field{Key: "request_id", Value: reqID},
